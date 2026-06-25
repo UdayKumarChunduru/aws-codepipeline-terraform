@@ -5,7 +5,7 @@ from flask import Flask, jsonify
 
 app = Flask(__name__)
 
-VERSION = "2.0.0"
+VERSION = "1.0.0"
 
 
 @app.route("/")
@@ -20,7 +20,7 @@ def index():
 
 @app.route("/health")
 def health():
-    return jsonify(status="broken"), 500
+    return jsonify(status="ok"), 200
 
 
 if __name__ == "__main__":
