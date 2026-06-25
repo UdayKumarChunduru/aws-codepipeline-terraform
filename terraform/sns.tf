@@ -27,22 +27,23 @@ resource "aws_sns_topic_policy" "allow_events" {
   })
 }
 
-resource "aws_cloudwatch_event_rule" "pipeline_level" {
-  name        = "pipeline-notify-${var.environment}"
-  description = "Capture all Pipeline level execution state changes and send to SNS"
+resource "aws_cloudwatch_event_rule" "pipeline_started" {
+  name        = "pipeline-started-notify-${var.environment}"
+  description = "Capture all Pipeline started events and send to SNS"
   state       = "ENABLED"
 
   event_pattern = jsonencode({
-    source      = ["aws.codepipeline"]
+    source        = ["aws.codepipeline"]
     "detail-type" = ["CodePipeline Pipeline Execution State Change"]
     detail = {
       pipeline = [aws_codepipeline.pipeline.name]
+      state    = ["STARTED"]
     }
   })
 }
 
-resource "aws_cloudwatch_event_target" "pipeline_to_sns" {
-  rule = aws_cloudwatch_event_rule.pipeline_level.name
+resource "aws_cloudwatch_event_target" "started_to_sns" {
+  rule = aws_cloudwatch_event_rule.pipeline_started.name
   arn  = aws_sns_topic.pipeline_alerts.arn
 
   input_transformer {
@@ -53,11 +54,57 @@ resource "aws_cloudwatch_event_target" "pipeline_to_sns" {
       start     = "$.detail.start-time"
       attempt   = "$.detail.pipeline-execution-attempt"
       region    = "$.region"
+    }
 
-      commit    = "$.detail.execution-trigger.commit-id"
-      message   = "$.detail.execution-trigger.commit-message"
-      author    = "$.detail.execution-trigger.author-display-name"
-      branch    = "$.detail.execution-trigger.branch-name"
+    input_template = <<-EOT
+      "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      "  PIPELINE: <pipeline>"
+      "  STATE:    <state>"
+      "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      ""
+      "  EXECUTION"
+      "  ├─ Run ID:   <execution>"
+      "  ├─ Attempt:  <attempt>"
+      "  └─ Started:  <start>"
+      ""
+      "  CONSOLE LINK"
+      "  https://console.aws.amazon.com/codesuite/codepipeline/pipelines/<pipeline>/executions/<execution>/visualization?region=<region>"
+      "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    EOT
+  }
+}
+
+resource "aws_cloudwatch_event_rule" "pipeline_terminal" {
+  name        = "pipeline-terminal-notify-${var.environment}"
+  description = "Pipeline terminal state events → SNS (with commit + failure detail)"
+  state       = "ENABLED"
+
+  event_pattern = jsonencode({
+    source        = ["aws.codepipeline"]
+    "detail-type" = ["CodePipeline Pipeline Execution State Change"]
+    detail = {
+      pipeline = [aws_codepipeline.pipeline.name]
+      state    = ["SUCCEEDED", "FAILED", "CANCELED", "RESUMED", "STOPPED", "STOPPING", "SUPERSEDED"]
+    }
+  })
+}
+
+resource "aws_cloudwatch_event_target" "terminal_to_sns" {
+  rule = aws_cloudwatch_event_rule.pipeline_terminal.name
+  arn  = aws_sns_topic.pipeline_alerts.arn
+
+  input_transformer {
+    input_paths = {
+      pipeline   = "$.detail.pipeline"
+      state      = "$.detail.state"
+      execution  = "$.detail.execution-id"
+      start      = "$.detail.start-time"
+      attempt    = "$.detail.pipeline-execution-attempt"
+      region     = "$.region"
+      commit     = "$.detail.execution-trigger.commit-id"
+      message    = "$.detail.execution-trigger.commit-message"
+      author     = "$.detail.execution-trigger.author-display-name"
+      branch     = "$.detail.execution-trigger.branch-name"
 
       failStage  = "$.additionalAttributes.failedStage"
       failAction = "$.additionalAttributes.failedActions[0].action"
@@ -81,7 +128,7 @@ resource "aws_cloudwatch_event_target" "pipeline_to_sns" {
       "  ├─ Author:   <author>"
       "  └─ Message:  <message>"
       ""
-      "  FAILURE DETAIL  (empty when state is SUCCEEDED)"
+      "  FAILURE DETAIL"
       "  ├─ Stage:   <failStage>"
       "  ├─ Action:  <failAction>"
       "  └─ Reason:  <failReason>"
