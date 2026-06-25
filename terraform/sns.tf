@@ -84,7 +84,6 @@ resource "aws_cloudwatch_event_rule" "pipeline_terminal" {
     "detail-type" = ["CodePipeline Pipeline Execution State Change"]
     detail = {
       pipeline = [aws_codepipeline.pipeline.name]
-      state    = ["SUCCEEDED", "FAILED", "CANCELED", "RESUMED", "STOPPED", "STOPPING", "SUPERSEDED"]
     }
   })
 }
