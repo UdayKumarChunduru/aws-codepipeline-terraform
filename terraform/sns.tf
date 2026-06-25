@@ -1,5 +1,3 @@
-data "aws_caller_identity" "current" {}
-
 resource "aws_sns_topic" "pipeline_alerts" {
   name = "pipeline-alerts-${var.environment}"
 }
