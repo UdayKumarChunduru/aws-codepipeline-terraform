@@ -21,19 +21,19 @@ resource "aws_sns_topic_policy" "allow_events" {
   })
 }
 
-resource "aws_cloudwatch_event_rule" "pipeline_failed" {
-  name = "pipeline-failed-${var.environment}"
+resource "aws_cloudwatch_event_rule" "pipeline_events" {
+  name = "pipeline-events-${var.environment}"
   event_pattern = jsonencode({
     source      = ["aws.codepipeline"]
     detail-type = ["CodePipeline Pipeline Execution State Change"]
     detail = {
-      state    = ["FAILED"]
+      state    = ["FAILED", "SUCCEEDED"]
       pipeline = [aws_codepipeline.pipeline.name]
     }
   })
 }
 
 resource "aws_cloudwatch_event_target" "to_sns" {
-  rule = aws_cloudwatch_event_rule.pipeline_failed.name
+  rule = aws_cloudwatch_event_rule.pipeline_events.name
   arn  = aws_sns_topic.pipeline_alerts.arn
 }
