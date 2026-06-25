@@ -2,6 +2,22 @@ resource "aws_codepipeline" "pipeline" {
   name     = "flask-app-pipeline-${var.environment}"
   role_arn = aws_iam_role.codepipeline.arn
 
+  # Set pipeline_type to V2
+  pipeline_type  = "V2"
+  execution_mode = "QUEUED"
+
+  trigger {
+    provider_type = "CodeStarSourceConnection"
+    git_configuration {
+      source_action_name = "GitHub"
+      push {
+        branches {
+          includes = [var.github_branch]
+        }
+      }
+    }
+  }
+
   artifact_store {
     location = aws_s3_bucket.artifacts.bucket
     type     = "S3"
@@ -20,6 +36,7 @@ resource "aws_codepipeline" "pipeline" {
         ConnectionArn    = var.codestar_connection_arn
         FullRepositoryId = var.github_repo
         BranchName       = var.github_branch
+        DetectChanges    = "false"
       }
     }
   }
