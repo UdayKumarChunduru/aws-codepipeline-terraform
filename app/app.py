@@ -3,8 +3,6 @@ import socket
 
 from flask import Flask, jsonify
 
-this_is_a_broken_syntax_error =
-
 app = Flask(__name__)
 
 VERSION = "1.0.0"
