@@ -6,10 +6,15 @@ phases:
       python: 3.12
     commands:
       - pip install -r app/requirements.txt
+      - pip install pytest flake8
+
   build:
     commands:
       - python -m py_compile app/app.py
-      - echo "Build $CODEBUILD_BUILD_NUMBER passed checks"
+      - echo "Syntax check passed"
+      - pytest app/tests/ -v
+      - echo "Build $CODEBUILD_BUILD_NUMBER passed all checks"
+      - flake8 app/ app/tests/ --max-line-length=100 --ignore=E501,W503,E402
 
 artifacts:
   files:
