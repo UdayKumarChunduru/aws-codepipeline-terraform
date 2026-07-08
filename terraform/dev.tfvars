@@ -1,3 +1,4 @@
+aws_region              = "us-east-1"
 environment             = "dev"
 github_repo             = "UdayKumarChunduru/aws-codepipeline-terraform"
 github_branch           = "main"

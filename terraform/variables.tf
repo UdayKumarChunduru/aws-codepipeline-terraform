@@ -1,27 +1,30 @@
 variable "aws_region" {
-  description = "Region to deploy into"
+  description = "AWS region where all resources are deployed"
   type        = string
-  default     = "us-east-1"
 }
 
 variable "environment" {
-  description = "Environment name, dev or prod, used in resource names"
+  description = "Environment name, used to namespace all resource names"
   type        = string
+  validation {
+    condition     = contains(["dev", "prod"], var.environment)
+    error_message = "environment must be dev or prod"
+  }
 }
 
 variable "github_repo" {
-  description = "Source repository as owner/repo"
+  description = "GitHub repository in owner/repo format"
   type        = string
 }
 
 variable "github_branch" {
-  description = "Branch that triggers the pipeline"
+  description = "Branch that CodePipeline monitors for changes"
   type        = string
   default     = "main"
 }
 
 variable "codestar_connection_arn" {
-  description = "ARN of the authorized CodeStar connection to GitHub"
+  description = "ARN of the authorized AWS CodeConnections connection to GitHub"
   type        = string
 }
 
@@ -32,12 +35,12 @@ variable "instance_count" {
 }
 
 variable "instance_type" {
-  description = "EC2 instance type"
+  description = "EC2 instance type for application hosts"
   type        = string
   default     = "t3.micro"
 }
 
 variable "alert_email" {
-  description = "Email address subscribed to pipeline failure notifications"
+  description = "Email address for pipeline failure notifications via SNS"
   type        = string
 }
